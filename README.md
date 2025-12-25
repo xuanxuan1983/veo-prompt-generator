@@ -2,7 +2,9 @@
 
 > 基于 Google 官方指南，小白也能写出专业级视频提示词
 
-[![GitHub Pages](https://img.shields.io/badge/在线使用-GitHub%20Pages-blue?style=for-the-badge)](https://你的用户名.github.io/veo-prompt-generator/)
+**作者**: [@xuanyi9747](https://github.com/xuanyi9747)
+
+[![GitHub Pages](https://img.shields.io/badge/在线使用-GitHub%20Pages-blue?style=for-the-badge)](https://xuanxuan1983.github.io/veo-prompt-generator/)
 
 ## ✨ 功能特点
 
