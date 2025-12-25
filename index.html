@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veo 视频提示词生成器 | Video Prompt Generator</title>
+    <style>
+        :root {
+            --bg-primary: #0f0f23;
+            --bg-secondary: #1a1a3e;
+            --bg-tertiary: #252552;
+            --accent-primary: #6366f1;
+            --accent-secondary: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--accent-primary);
+            border-radius: 2px;
+        }
+
+        /* Templates Section */
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .template-card {
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+
+        .template-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .template-card.active {
+            border-color: var(--accent-primary);
+            background: linear-gradient(135deg, var(--bg-tertiary), rgba(99, 102, 241, 0.2));
+        }
+
+        .template-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .template-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Form Elements */
+        .form-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .form-section-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-section-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .label-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        /* Collapsible Sections */
+        .collapsible {
+            margin-bottom: 1rem;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .collapsible-header:hover {
+            background: var(--bg-primary);
+        }
+
+        .collapsible-header.active {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .collapsible-content {
+            display: none;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 0 0 8px 8px;
+            border: 1px solid var(--border-color);
+            border-top: none;
+        }
+
+        .collapsible-content.show {
+            display: block;
+        }
+
+        .chevron {
+            transition: transform 0.2s ease;
+        }
+
+        .collapsible-header.active .chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Output Panel */
+        .output-container {
+            position: sticky;
+            top: 1rem;
+        }
+
+        .output-box {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 200px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .output-placeholder {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .output-section {
+            margin-bottom: 1rem;
+        }
+
+        .output-label {
+            font-size: 0.75rem;
+            color: var(--accent-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Timestamp Editor */
+        .timestamp-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 40px;
+            gap: 0.5rem;
+            align-items: start;
+            margin-bottom: 0.5rem;
+        }
+
+        .timestamp-input {
+            padding: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Helper Text */
+        .helper-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .helper-chip {
+            padding: 0.4rem 0.6rem;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .helper-chip:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        /* Tab System */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .tab.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .stat {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            color: var(--accent-secondary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Veo 视频提示词生成器</h1>
+            <p>基于 Google 官方指南，小白也能写出专业级视频提示词</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left Panel: Form -->
+            <div class="panel">
+                <h2 class="panel-title">创作区</h2>
+
+                <!-- Template Selection -->
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <span class="form-section-title">📁 选择场景模板</span>
+                        <span class="form-section-badge">快速开始</span>
+                    </div>
+                    <div class="templates-grid" id="templatesGrid">
+                        <div class="template-card" data-template="cinematic" onclick="loadTemplate('cinematic')">
+                            <div class="template-icon">🎥</div>
+                            <div class="template-name">电影场景</div>
+                        </div>
+                        <div class="template-card" data-template="product" onclick="loadTemplate('product')">
+                            <div class="template-icon">📦</div>
+                            <div class="template-name">产品展示</div>
+                        </div>
+                        <div class="template-card" data-template="nature" onclick="loadTemplate('nature')">
+                            <div class="template-icon">🌿</div>
+                            <div class="template-name">自然纪录片</div>
+                        </div>
+                        <div class="template-card" data-template="anime" onclick="loadTemplate('anime')">
+                            <div class="template-icon">✨</div>
+                            <div class="template-name">动画风格</div>
+                        </div>
+                        <div class="template-card" data-template="commercial" onclick="loadTemplate('commercial')">
+                            <div class="template-icon">📺</div>
+                            <div class="template-name">广告</div>
+                        </div>
+                        <div class="template-card" data-template="vlog" onclick="loadTemplate('vlog')">
+                            <div class="template-icon">🎒</div>
+                            <div class="template-name">旅行Vlog</div>
+                        </div>
+                        <div class="template-card" data-template="music" onclick="loadTemplate('music')">
+                            <div class="template-icon">🎵</div>
+                            <div class="template-name">音乐视频</div>
+                        </div>
+                        <div class="template-card" data-template="custom" onclick="loadTemplate('custom')">
+                            <div class="template-icon">✏️</div>
+                            <div class="template-name">自定义</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Core 5 Elements -->
+                <div class="form-section">
+                    <div class="form-section-header">
+                        <span class="form-section-title">🎯 核心五要素</span>
+                    </div>
+
+                    <!-- 1. Cinematography -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📷 镜头类型 <span class="label-hint">(Shot Type)</span></label>
+                            <select id="shotType" onchange="generatePrompt()">
+                                <option value="">选择镜头类型...</option>
+                                <optgroup label="景别">
+                                    <option value="extreme close-up">极近特写 (Extreme Close-up)</option>
+                                    <option value="close-up">特写 (Close-up)</option>
+                                    <option value="medium shot">中景 (Medium Shot)</option>
+                                    <option value="full shot">全景 (Full Shot)</option>
+                                    <option value="wide shot">远景 (Wide Shot)</option>
+                                </optgroup>
+                                <optgroup label="角度">
+                                    <option value="eye-level shot">平视 (Eye-level)</option>
+                                    <option value="low angle shot">低角度 (Low Angle)</option>
+                                    <option value="high angle shot">俯拍 (High Angle)</option>
+                                    <option value="bird's-eye view">鸟瞰 (Bird's Eye)</option>
+                                    <option value="worm's-eye view">虫眼视角 (Worm's Eye)</option>
+                                    <option value="POV shot">主观镜头 (POV)</option>
+                                    <option value="over-the-shoulder shot">过肩镜头 (OTS)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🎬 镜头运动 <span class="label-hint">(Camera Movement)</span></label>
+                            <select id="cameraMovement" onchange="generatePrompt()">
+                                <option value="">选择运动方式...</option>
+                                <option value="static shot">静态 (Static)</option>
+                                <option value="slow pan">慢速平移 (Slow Pan)</option>
+                                <option value="tracking shot">跟踪镜头 (Tracking)</option>
+                                <option value="dolly shot">推轨镜头 (Dolly)</option>
+                                <option value="crane shot">摇臂镜头 (Crane)</option>
+                                <option value="aerial drone shot">航拍无人机 (Drone)</option>
+                                <option value="handheld shot">手持拍摄 (Handheld)</option>
+                                <option value="arc shot">弧形拍摄 (Arc)</option>
+                                <option value="slow zoom in">缓慢推进 (Slow Zoom In)</option>
+                                <option value="slow zoom out">缓慢拉远 (Slow Zoom Out)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 2. Subject -->
+                    <div class="form-group">
+                        <label>👤 主题/主角 <span class="label-hint">(Subject)</span></label>
+                        <textarea id="subject" placeholder="描述视频中的主角或主要对象&#10;例如：一位穿着复古西装的中年侦探，头发略显凌乱，表情严肃"
+                            onchange="generatePrompt()" oninput="generatePrompt()"></textarea>
+                        <div class="helper-grid">
+                            <span class="helper-chip" onclick="appendToField('subject', 'a young woman')">年轻女性</span>
+                            <span class="helper-chip" onclick="appendToField('subject', 'an elderly man')">老年男性</span>
+                            <span class="helper-chip"
+                                onclick="appendToField('subject', 'a golden retriever')">金毛犬</span>
+                            <span class="helper-chip" onclick="appendToField('subject', 'a sleek sports car')">跑车</span>
+                            <span class="helper-chip"
+                                onclick="appendToField('subject', 'a glowing crystal')">发光水晶</span>
+                        </div>
+                    </div>
+
+                    <!-- 3. Action -->
+                    <div class="form-group">
+                        <label>🎭 动作/状态 <span class="label-hint">(Action)</span></label>
+                        <textarea id="action" placeholder="描述正在发生什么&#10;例如：正在全神贯注地阅读一封信，表情从平静逐渐变得震惊"
+                            onchange="generatePrompt()" oninput="generatePrompt()"></textarea>
+                        <div class="helper-grid">
+                            <span class="helper-chip" onclick="appendToField('action', 'walking slowly')">缓步行走</span>
+                            <span class="helper-chip"
+                                onclick="appendToField('action', 'looking out the window')">望向窗外</span>
+                            <span class="helper-chip" onclick="appendToField('action', 'smiling warmly')">温暖微笑</span>
+                            <span class="helper-chip"
+                                onclick="appendToField('action', 'running in slow motion')">慢动作奔跑</span>
+                            <span class="helper-chip"
+                                onclick="appendToField('action', 'dancing gracefully')">优雅起舞</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. Context -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📍 场景/地点 <span class="label-hint">(Location)</span></label>
+                            <input type="text" id="location" placeholder="例如：雾气缭绕的古老森林" onchange="generatePrompt()"
+                                oninput="generatePrompt()">
+                        </div>
+                        <div class="form-group">
+                            <label>🕐 时间/天气 <span class="label-hint">(Time/Weather)</span></label>
+                            <select id="timeWeather" onchange="generatePrompt()">
+                                <option value="">选择时间/天气...</option>
+                                <optgroup label="时间">
+                                    <option value="at golden hour">黄金时刻</option>
+                                    <option value="at dawn">黎明</option>
+                                    <option value="at dusk">黄昏</option>
+                                    <option value="at night">夜晚</option>
+                                    <option value="under bright midday sun">正午阳光</option>
+                                </optgroup>
+                                <optgroup label="天气">
+                                    <option value="on a rainy day">雨天</option>
+                                    <option value="during a gentle snowfall">小雪纷飞</option>
+                                    <option value="in thick fog">浓雾中</option>
+                                    <option value="under a clear blue sky">晴朗蓝天</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 5. Style & Ambiance -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>💡 光效 <span class="label-hint">(Lighting)</span></label>
+                            <select id="lighting" onchange="generatePrompt()">
+                                <option value="">选择光效...</option>
+                                <option value="soft natural light">柔和自然光</option>
+                                <option value="dramatic side lighting">戏剧性侧光</option>
+                                <option value="warm golden hour light">温暖黄金时刻光</option>
+                                <option value="film noir lighting with deep shadows">黑色电影深阴影</option>
+                                <option value="neon lights">霓虹灯光</option>
+                                <option value="volumetric light rays">体积光射线</option>
+                                <option value="flickering candlelight">烛光摇曳</option>
+                                <option value="harsh fluorescent lighting">刺眼荧光灯</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>🎨 视觉风格 <span class="label-hint">(Visual Style)</span></label>
+                            <select id="visualStyle" onchange="generatePrompt()">
+                                <option value="">选择视觉风格...</option>
+                                <option value="cinematic, shot on 35mm film">电影感 35mm胶片</option>
+                                <option value="hyper-realistic, 8K">超写实 8K</option>
+                                <option value="Japanese anime style">日式动漫风</option>
+                                <option value="Pixar-style 3D animation">皮克斯3D动画风</option>
+                                <option value="vintage 1920s sepia toned">复古1920年代棕褐色调</option>
+                                <option value="cyberpunk neon aesthetic">赛博朋克霓虹美学</option>
+                                <option value="watercolor painting style">水彩画风格</option>
+                                <option value="documentary style, handheld">纪录片风格</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🎭 情绪/氛围 <span class="label-hint">(Mood)</span></label>
+                        <select id="mood" onchange="generatePrompt()">
+                            <option value="">选择情绪氛围...</option>
+                            <option value="peaceful and serene">平和宁静</option>
+                            <option value="melancholic and wistful">忧郁惆怅</option>
+                            <option value="tense and suspenseful">紧张悬疑</option>
+                            <option value="epic and awe-inspiring">史诗壮丽</option>
+                            <option value="romantic and intimate">浪漫亲密</option>
+                            <option value="joyful and uplifting">欢快振奋</option>
+                            <option value="dark and ominous">黑暗不祥</option>
+                            <option value="dreamy and surreal">梦幻超现实</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <span>🔧 高级选项 - 镜头效果</span>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📸 镜头/光学效果</label>
+                                <select id="lensEffect" onchange="generatePrompt()">
+                                    <option value="">无特殊效果</option>
+                                    <option value="shallow depth of field with beautiful bokeh">浅景深散景</option>
+                                    <option value="wide-angle lens">广角镜头</option>
+                                    <option value="telephoto lens">长焦镜头</option>
+                                    <option value="lens flare">镜头光晕</option>
+                                    <option value="fish-eye lens effect">鱼眼效果</option>
+                                    <option value="rack focus">跟焦</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>⏱️ 时间效果</label>
+                                <select id="timeEffect" onchange="generatePrompt()">
+                                    <option value="">正常速度</option>
+                                    <option value="in slow motion">慢动作</option>
+                                    <option value="time-lapse">延时摄影</option>
+                                    <option value="fast-paced action">快节奏</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Section -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <span>🔊 音频控制 (Veo 3.0+)</span>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>💬 对话 <span class="label-hint">使用引号包裹台词</span></label>
+                            <input type="text" id="dialogue" placeholder='例如：主角说："我终于找到你了。"' onchange="generatePrompt()"
+                                oninput="generatePrompt()">
+                        </div>
+                        <div class="form-group">
+                            <label>🔉 音效 (SFX)</label>
+                            <input type="text" id="sfx" placeholder="例如：远处雷声轰鸣、门吱呀声" onchange="generatePrompt()"
+                                oninput="generatePrompt()">
+                        </div>
+                        <div class="form-group">
+                            <label>🎵 环境音</label>
+                            <input type="text" id="ambientSound" placeholder="例如：城市交通的嗡嗡声、海浪拍打海岸"
+                                onchange="generatePrompt()" oninput="generatePrompt()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Negative Prompt -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <span>🚫 否定提示（不想要的元素）</span>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label>不希望出现的元素 <span class="label-hint">直接描述不要的内容，无需"不要""没有"</span></label>
+                            <input type="text" id="negativePrompt" placeholder="例如：模糊画面, 畸变人脸, 人造结构"
+                                onchange="generatePrompt()" oninput="generatePrompt()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timestamp Editor -->
+                <div class="collapsible">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <span>⏰ 时间戳多镜头 (Timestamp)</span>
+                        <span class="chevron">▼</span>
+                    </div>
+                    <div class="collapsible-content">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                            使用时间戳可以在一个视频中控制多个镜头切换。格式：[00:00-00:02] 描述
+                        </p>
+                        <div id="timestampContainer">
+                            <div class="timestamp-row">
+                                <input type="text" class="timestamp-input" placeholder="00:00-00:02"
+                                    value="00:00-00:02">
+                                <input type="text" placeholder="镜头描述...">
+                                <button class="btn btn-icon btn-secondary" onclick="removeTimestamp(this)">✕</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="addTimestamp()" style="margin-top: 0.5rem;">
+                            + 添加镜头
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Output -->
+            <div class="panel output-container">
+                <h2 class="panel-title">生成结果</h2>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('english')">English Prompt</button>
+                    <button class="tab" onclick="switchTab('chinese')">中文对照</button>
+                    <button class="tab" onclick="switchTab('timestamp')">时间戳版</button>
+                </div>
+
+                <div id="tab-english" class="tab-content active">
+                    <div class="output-box" id="outputEnglish">
+                        <span class="output-placeholder">在左侧填写表单，提示词将自动生成...</span>
+                    </div>
+                </div>
+
+                <div id="tab-chinese" class="tab-content">
+                    <div class="output-box" id="outputChinese">
+                        <span class="output-placeholder">中文翻译对照将显示在这里...</span>
+                    </div>
+                </div>
+
+                <div id="tab-timestamp" class="tab-content">
+                    <div class="output-box" id="outputTimestamp">
+                        <span class="output-placeholder">时间戳多镜头版本将显示在这里...</span>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="copyPrompt()">
+                        📋 复制提示词
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearForm()">
+                        🗑️ 清空表单
+                    </button>
+                </div>
+
+                <div class="stats">
+                    <span class="stat">字符数: <span class="stat-value" id="charCount">0</span></span>
+                    <span class="stat">单词数: <span class="stat-value" id="wordCount">0</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">已复制到剪贴板！</div>
+
+    <script>
+        // Template definitions
+        const templates = {
+            cinematic: {
+                shotType: 'medium shot',
+                cameraMovement: 'slow dolly shot',
+                subject: 'a weathered detective in a vintage trench coat, his face etched with experience',
+                action: 'slowly examining a mysterious photograph, his expression shifting from curiosity to recognition',
+                location: 'a dimly lit private investigator office',
+                timeWeather: 'at night',
+                lighting: 'film noir lighting with deep shadows',
+                visualStyle: 'cinematic, shot on 35mm film',
+                mood: 'tense and suspenseful'
+            },
+            product: {
+                shotType: 'close-up',
+                cameraMovement: 'slow zoom in',
+                subject: 'a sleek, modern smartphone with a pristine glass display',
+                action: 'rotating gracefully, catching and reflecting ambient light',
+                location: 'minimalist white studio with seamless background',
+                lighting: 'soft natural light',
+                visualStyle: 'hyper-realistic, 8K',
+                mood: ''
+            },
+            nature: {
+                shotType: 'wide shot',
+                cameraMovement: 'aerial drone shot',
+                subject: 'a majestic golden eagle',
+                action: 'soaring gracefully over a pristine mountain range, its wings spread wide',
+                location: 'snow-capped mountain peaks',
+                timeWeather: 'at golden hour',
+                lighting: 'warm golden hour light',
+                visualStyle: 'hyper-realistic, 8K',
+                mood: 'epic and awe-inspiring'
+            },
+            anime: {
+                shotType: 'medium shot',
+                cameraMovement: 'tracking shot',
+                subject: 'a magical girl with flowing silver hair and glowing blue eyes',
+                action: 'walking through an enchanted forest, cherry blossom petals swirling around her',
+                location: 'a mystical forest clearing with floating light orbs',
+                lighting: 'soft natural light',
+                visualStyle: 'Japanese anime style',
+                mood: 'dreamy and surreal',
+                ambientSound: 'gentle wind chimes and soft magical tones'
+            },
+            commercial: {
+                shotType: 'medium shot',
+                cameraMovement: 'slow pan',
+                subject: 'a happy family gathered around a dinner table',
+                action: 'laughing and sharing food, genuine warmth in their expressions',
+                location: 'cozy modern home kitchen',
+                timeWeather: 'under bright midday sun',
+                lighting: 'soft natural light',
+                visualStyle: 'hyper-realistic, 8K',
+                mood: 'joyful and uplifting'
+            },
+            vlog: {
+                shotType: 'POV shot',
+                cameraMovement: 'handheld shot',
+                subject: 'a backpacker with a worn leather satchel',
+                action: 'exploring ancient temple ruins, looking around in wonder',
+                location: 'moss-covered temple ruins in a dense jungle',
+                timeWeather: 'at golden hour',
+                lighting: 'warm golden hour light',
+                visualStyle: 'documentary style, handheld',
+                mood: 'epic and awe-inspiring',
+                ambientSound: 'exotic birds calling, leaves rustling in the breeze'
+            },
+            music: {
+                shotType: 'medium shot',
+                cameraMovement: 'arc shot',
+                subject: 'a passionate singer with dramatic stage makeup',
+                action: 'singing emotionally into a vintage microphone, eyes closed, fully immersed in the music',
+                location: 'dramatic stage with theatrical lighting',
+                lighting: 'dramatic side lighting',
+                visualStyle: 'cinematic, shot on 35mm film',
+                mood: 'romantic and intimate'
+            },
+            custom: {
+                // Empty template for custom creation
+            }
+        };
+
+        // Load template
+        function loadTemplate(templateName) {
+            // Update active state
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`[data-template="${templateName}"]`).classList.add('active');
+
+            const template = templates[templateName];
+            if (!template) return;
+
+            // Fill form
+            Object.keys(template).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = template[key] || '';
+                }
+            });
+
+            generatePrompt();
+        }
+
+        // Generate prompt
+        function generatePrompt() {
+            const shotType = document.getElementById('shotType').value;
+            const cameraMovement = document.getElementById('cameraMovement').value;
+            const subject = document.getElementById('subject').value;
+            const action = document.getElementById('action').value;
+            const location = document.getElementById('location').value;
+            const timeWeather = document.getElementById('timeWeather').value;
+            const lighting = document.getElementById('lighting').value;
+            const visualStyle = document.getElementById('visualStyle').value;
+            const mood = document.getElementById('mood').value;
+            const lensEffect = document.getElementById('lensEffect').value;
+            const timeEffect = document.getElementById('timeEffect').value;
+            const dialogue = document.getElementById('dialogue').value;
+            const sfx = document.getElementById('sfx').value;
+            const ambientSound = document.getElementById('ambientSound').value;
+            const negativePrompt = document.getElementById('negativePrompt').value;
+
+            // Build prompt parts
+            let parts = [];
+
+            // Cinematography
+            if (shotType || cameraMovement) {
+                let cinematography = [shotType, cameraMovement].filter(Boolean).join(', ');
+                parts.push(cinematography);
+            }
+
+            // Subject
+            if (subject) {
+                parts.push(subject);
+            }
+
+            // Action
+            if (action) {
+                parts.push(action);
+            }
+
+            // Context
+            let context = [];
+            if (location) context.push(`in ${location}`);
+            if (timeWeather) context.push(timeWeather);
+            if (context.length > 0) {
+                parts.push(context.join(' '));
+            }
+
+            // Style
+            let style = [];
+            if (lighting) style.push(lighting);
+            if (visualStyle) style.push(visualStyle);
+            if (mood) style.push(`${mood} atmosphere`);
+            if (lensEffect) style.push(lensEffect);
+            if (timeEffect) style.push(timeEffect);
+            if (style.length > 0) {
+                parts.push(style.join(', '));
+            }
+
+            // Build main prompt
+            let prompt = parts.join('. ');
+            if (prompt && !prompt.endsWith('.')) {
+                prompt += '.';
+            }
+
+            // Audio section
+            let audioSection = [];
+            if (dialogue) {
+                audioSection.push(dialogue);
+            }
+            if (sfx) {
+                audioSection.push(`SFX: ${sfx}.`);
+            }
+            if (ambientSound) {
+                audioSection.push(`Ambient sound: ${ambientSound}.`);
+            }
+            if (audioSection.length > 0) {
+                prompt += ' ' + audioSection.join(' ');
+            }
+
+            // Update output
+            const outputEnglish = document.getElementById('outputEnglish');
+            if (prompt.trim()) {
+                outputEnglish.textContent = prompt;
+            } else {
+                outputEnglish.innerHTML = '<span class="output-placeholder">在左侧填写表单，提示词将自动生成...</span>';
+            }
+
+            // Update Chinese translation (simplified mapping)
+            const outputChinese = document.getElementById('outputChinese');
+            if (prompt.trim()) {
+                outputChinese.innerHTML = generateChineseVersion(prompt);
+            } else {
+                outputChinese.innerHTML = '<span class="output-placeholder">中文翻译对照将显示在这里...</span>';
+            }
+
+            // Update stats
+            document.getElementById('charCount').textContent = prompt.length;
+            document.getElementById('wordCount').textContent = prompt.split(/\s+/).filter(Boolean).length;
+
+            // Update timestamp version
+            updateTimestampOutput();
+
+            // Store for copying
+            window.currentPrompt = prompt;
+            window.currentNegativePrompt = negativePrompt;
+        }
+
+        function generateChineseVersion(prompt) {
+            // Simple display with both versions
+            return `<div class="output-section">
+                <div class="output-label">英文提示词</div>
+                <div style="margin-bottom: 1rem; color: var(--text-secondary);">${prompt}</div>
+            </div>
+            <div class="output-section">
+                <div class="output-label">翻译说明</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">
+                    提示：将以上英文提示词粘贴到 Veo 视频生成页面即可使用。Veo 原生支持英文提示词，建议使用英文以获得最佳效果。
+                </div>
+            </div>`;
+        }
+
+        function updateTimestampOutput() {
+            const container = document.getElementById('timestampContainer');
+            const rows = container.querySelectorAll('.timestamp-row');
+            let timestampPrompt = '';
+
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const time = inputs[0].value.trim();
+                const desc = inputs[1].value.trim();
+                if (time && desc) {
+                    timestampPrompt += `[${time}] ${desc}\n\n`;
+                }
+            });
+
+            const outputTimestamp = document.getElementById('outputTimestamp');
+            if (timestampPrompt.trim()) {
+                outputTimestamp.textContent = timestampPrompt;
+                window.timestampPrompt = timestampPrompt;
+            } else {
+                outputTimestamp.innerHTML = '<span class="output-placeholder">在高级选项中添加时间戳镜头...</span>';
+            }
+        }
+
+        // Helper functions
+        function appendToField(fieldId, text) {
+            const field = document.getElementById(fieldId);
+            if (field.value) {
+                field.value += ', ' + text;
+            } else {
+                field.value = text;
+            }
+            generatePrompt();
+        }
+
+        function toggleCollapsible(header) {
+            header.classList.toggle('active');
+            const content = header.nextElementSibling;
+            content.classList.toggle('show');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        function addTimestamp() {
+            const container = document.getElementById('timestampContainer');
+            const rows = container.querySelectorAll('.timestamp-row');
+            const lastRow = rows[rows.length - 1];
+            const lastInputs = lastRow.querySelectorAll('input');
+            const lastTime = lastInputs[0].value;
+
+            // Calculate next time
+            let nextStart = '00:00';
+            if (lastTime) {
+                const match = lastTime.match(/(\d{2}:\d{2})-(\d{2}:\d{2})/);
+                if (match) {
+                    nextStart = match[2];
+                }
+            }
+            const [min, sec] = nextStart.split(':').map(Number);
+            const nextEnd = `${String(min).padStart(2, '0')}:${String(sec + 2).padStart(2, '0')}`;
+
+            const newRow = document.createElement('div');
+            newRow.className = 'timestamp-row';
+            newRow.innerHTML = `
+                <input type="text" class="timestamp-input" placeholder="00:00-00:02" value="${nextStart}-${nextEnd}">
+                <input type="text" placeholder="镜头描述..." oninput="updateTimestampOutput()">
+                <button class="btn btn-icon btn-secondary" onclick="removeTimestamp(this)">✕</button>
+            `;
+            container.appendChild(newRow);
+        }
+
+        function removeTimestamp(btn) {
+            const container = document.getElementById('timestampContainer');
+            if (container.querySelectorAll('.timestamp-row').length > 1) {
+                btn.closest('.timestamp-row').remove();
+                updateTimestampOutput();
+            }
+        }
+
+        function copyPrompt() {
+            const activeTab = document.querySelector('.tab.active').textContent;
+            let textToCopy = '';
+
+            if (activeTab.includes('English')) {
+                textToCopy = window.currentPrompt || '';
+            } else if (activeTab.includes('时间戳')) {
+                textToCopy = window.timestampPrompt || '';
+            } else {
+                textToCopy = window.currentPrompt || '';
+            }
+
+            if (window.currentNegativePrompt) {
+                textToCopy += '\n\n[Negative Prompt]: ' + window.currentNegativePrompt;
+            }
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast('已复制到剪贴板！');
+            }).catch(err => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('已复制到剪贴板！');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function clearForm() {
+            document.querySelectorAll('input, textarea, select').forEach(el => {
+                el.value = '';
+            });
+            document.querySelectorAll('.template-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            generatePrompt();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            generatePrompt();
+        });
+    </script>
+</body>
+
+</html>
